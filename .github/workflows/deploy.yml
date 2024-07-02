@@ -29,41 +29,10 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v1
 
-    name: Deploy Next.js to EKS
-
-on:
-  push:
-    branches:
-      - main
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-
-    - name: Set up Node.js
-      uses: actions/setup-node@v2
-      with:
-        node-version: '14'
-
-    - name: Install dependencies
-      run: npm install
-      working-directory: ./nextjs-material-kit-main
-
-    - name: Build the Next.js app
-      run: npm run build
-      working-directory: ./nextjs-material-kit-main
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v1
-
     - name: Log in to Amazon ECR
-       id: ecr-login
-       uses: aws-actions/amazon-ecr-login@v1
-       with:
+      id: ecr-login
+      uses: aws-actions/amazon-ecr-login@v1
+      with:
         registry: 058264105592.dkr.ecr.eu-north-1.amazonaws.com
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -72,23 +41,21 @@ jobs:
         registry-type: 'AWS'
         skip-logout: false
 
-
-
     - name: Build and push Docker image
       env:
         ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
         ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         IMAGE_TAG: ${{ github.sha }}
       run: |
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./nextjs-material-kit-main
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        docker build -t $ECR_REGISTRY/${{ secrets.ECR_REPOSITORY }}:$IMAGE_TAG ./nextjs-material-kit-main
+        docker push $ECR_REGISTRY/${{ secrets.ECR_REPOSITORY }}:$IMAGE_TAG
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ secrets.AWS_REGION }}
+        aws-region: eu-north-1
 
     - name: Set up kubectl
       run: |
@@ -102,45 +69,7 @@ jobs:
         RELEASE_NAME: nextjs-app
       run: |
         helm upgrade --install $RELEASE_NAME ./helm-chart \
-          --set image.repository=$ECR_REGISTRY/$ECR_REPOSITORY \
-          --set image.tag=$IMAGE_TAG
-
-    - name: Clean up
-      run: |
-        docker image prune -f
-        rm -rf nextjs-material-kit-main/node_modules
-
-
-
-    - name: Build and push Docker image
-      env:
-        ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
-        ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
-        IMAGE_TAG: ${{ github.sha }}
-      run: |
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./nextjs-material-kit-main
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ secrets.AWS_REGION }}
-
-    - name: Set up kubectl
-      run: |
-        aws eks update-kubeconfig --name ${{ secrets.EKS_CLUSTER_NAME }}
-
-    - name: Deploy with Helm
-      env:
-        ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
-        ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
-        IMAGE_TAG: ${{ github.sha }}
-        RELEASE_NAME: nextjs-app
-      run: |
-        helm upgrade --install $RELEASE_NAME ./helm-chart \
-          --set image.repository=$ECR_REGISTRY/$ECR_REPOSITORY \
+          --set image.repository=$ECR_REGISTRY/${{ secrets.ECR_REPOSITORY }} \
           --set image.tag=$IMAGE_TAG
 
     - name: Clean up

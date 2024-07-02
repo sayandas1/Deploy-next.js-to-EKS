@@ -57,6 +57,8 @@ jobs:
         id: eks-config
         run: |
           aws eks --region eu-north-1 update-kubeconfig --name ${{ secrets.EKS_CLUSTER_NAME }}
+          mkdir -p ~/.kube
+          cp $HOME/.kube/config ~/.kube/config
 
       - name: Check kubeconfig
         run: cat $HOME/.kube/config  # Output kubeconfig to verify it's properly configured

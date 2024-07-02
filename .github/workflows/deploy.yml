@@ -17,10 +17,14 @@ jobs:
       ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
       EKS_CLUSTER_NAME: ${{ secrets.EKS_CLUSTER_NAME }}
       EKS_ROLE_ARN: ${{ secrets.EKS_ROLE_ARN }}
+      AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+
+      - name: Check AWS CLI version
+        run: aws --version
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -50,7 +54,9 @@ jobs:
 
       - name: Configure kubectl
         run: |
-          aws eks --region $AWS_REGION update-kubeconfig --name $EKS_CLUSTER_NAME --role-arn $EKS_ROLE_ARN
+          aws eks --region $AWS_REGION update-kubeconfig --name $EKS_CLUSTER_NAME --role-arn $EKS_ROLE_ARN --debug
+        env:
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
 
       - name: Deploy to EKS using Helm
         run: |

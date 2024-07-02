@@ -14,10 +14,8 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_REGION: ${{ secrets.AWS_REGION }}
       ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
-      ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
       EKS_CLUSTER_NAME: ${{ secrets.EKS_CLUSTER_NAME }}
       EKS_ROLE_ARN: ${{ secrets.EKS_ROLE_ARN }}
-      AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
 
     steps:
       - name: Checkout code
@@ -51,15 +49,9 @@ jobs:
         run: |
           docker push $ECR_REGISTRY:latest
 
-      - name: Install kubectl
-        uses: azure/k8s-set-context@v1
-        with:
-          kubeconfig: $HOME/.kube/config
-          version: 'latest'
-
-      - name: Configure kubectl
+      - name: Configure kubectl and update kubeconfig
         run: |
-          aws eks --region $AWS_REGION update-kubeconfig --name $EKS_CLUSTER_NAME --role-arn $EKS_ROLE_ARN --debug
+          aws eks --region $AWS_REGION update-kubeconfig --name $EKS_CLUSTER_NAME --role-arn $EKS_ROLE_ARN
         env:
           AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
 

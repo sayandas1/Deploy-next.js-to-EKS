@@ -31,10 +31,14 @@ jobs:
         id: login-ecr
         run: aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
 
-      - name: Build Docker image
+      - name: Build and push Docker image
+        env:
+          ECR_REGISTRY: 058264105592.dkr.ecr.eu-north-1.amazonaws.com
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker build -t $ECR_REGISTRY/${{ secrets.ECR_REPOSITORY }}:$IMAGE_TAG -f Dockerfile .
+          docker push $ECR_REGISTRY/${{ secrets.ECR_REPOSITORY }}:$IMAGE_TAG
 
       - name: Install kubectl
         run: |
@@ -47,7 +51,7 @@ jobs:
 
       - name: Deploy to EKS using Helm
         run: |
-          helm upgrade --install nextjs-app ./path/to/your/helm/chart \
+          helm upgrade --install nextjs-app ./helm-chart \
             --set image.repository=$ECR_REGISTRY/$ECR_REPOSITORY \
             --set image.tag=latest
 

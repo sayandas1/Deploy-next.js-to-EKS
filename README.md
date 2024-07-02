@@ -53,8 +53,3 @@ If you encounter issues during deployment:
 - Check GitHub Actions logs for any error messages.
 - Verify AWS credentials and permissions.
 - Ensure Helm chart configurations (`values.yaml`, `deployment.yaml`, `service.yaml`) are correct.
-
-## Resources
-
-- [Amazon EKS Documentation](https://docs.aws.amazon.com/eks/)
-- [Helm Documentation](https://helm.sh/docs/)

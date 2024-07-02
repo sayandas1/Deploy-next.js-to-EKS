@@ -57,8 +57,9 @@ jobs:
 
       - name: Deploy to EKS using Helm
         run: |
-          kubectl apply -f ./helm-chart
-          helm upgrade --install nextjs-app ./helm-chart --set image.repository=$ECR_REGISTRY,image.tag=latest --kubeconfig $HOME/.kube/config
+          helm upgrade --install nextjs-app ./helm-chart \
+            --set image.repository=$ECR_REGISTRY,image.tag=latest \
+            --kubeconfig $HOME/.kube/config
 
       - name: Clean up
         run: |

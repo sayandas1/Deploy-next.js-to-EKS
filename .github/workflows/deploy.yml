@@ -36,7 +36,7 @@ jobs:
        registry: 058264105592.dkr.ecr.eu-north-1.amazonaws.com/next.js_application
        region: ${{ secrets.AWS_REGION }}
        mask-password: false
-       registry-type: 'AWS'
+       registry-type: private
        skip-logout: false
 
 

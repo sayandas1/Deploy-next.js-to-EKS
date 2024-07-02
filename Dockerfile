@@ -1,31 +1,21 @@
-# Install dependencies only when needed
-FROM node:18-alpine AS deps
-WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
+# Use an official Node.js runtime as a parent image
+FROM node:14-alpine
 
-# Rebuild the source code only when needed
-FROM node:18-alpine AS builder
+# Set the working directory
 WORKDIR /app
-COPY . .
-COPY --from=deps /app/node_modules ./node_modules
+
+# Install dependencies
+COPY ./nextjs-material-kit-main/package*.json ./
+RUN npm install
+
+# Copy the local code into the container
+COPY ./nextjs-material-kit-main .
+
+# Build the Next.js application
 RUN npm run build
 
-# Production image, copy all the files and run next
-FROM node:18-alpine AS runner
-WORKDIR /app
-
-ENV NODE_ENV production
-
-# You only need to copy next.config.js if you are NOT using the default configuration
-# COPY --from=builder /app/next.config.js ./
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-
-# Expose the port Next.js will run on
+# Expose the port Next.js is listening on
 EXPOSE 3000
 
-# Start the Next.js server
+# Command to run the application
 CMD ["npm", "start"]

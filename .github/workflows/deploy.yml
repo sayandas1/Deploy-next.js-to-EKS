@@ -26,9 +26,6 @@ jobs:
         run: npm run build
         working-directory: ./nextjs-material-kit-main
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-
       - name: Log in to Amazon ECR
         id: ecr-login
         env:
@@ -46,16 +43,15 @@ jobs:
           docker build -t $ECR_REGISTRY/${{ secrets.ECR_REPOSITORY }}:$IMAGE_TAG -f Dockerfile .
           docker push $ECR_REGISTRY/${{ secrets.ECR_REPOSITORY }}:$IMAGE_TAG
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: eu-north-1
-
-      - name: Set up kubectl
+      - name: Configure AWS credentials and set up kubectl
         id: eks-config
-        run: aws eks --region eu-north-1 update-kubeconfig --name ${{ secrets.EKS_CLUSTER_NAME }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: eu-north-1
+          EKS_CLUSTER_NAME: ${{ secrets.EKS_CLUSTER_NAME }}
+        run: |
+          aws eks --region $AWS_REGION update-kubeconfig --name $EKS_CLUSTER_NAME
 
       - name: Check kubeconfig
         run: cat $HOME/.kube/config  # Output kubeconfig to verify it's properly configured

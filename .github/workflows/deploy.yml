@@ -33,13 +33,12 @@ jobs:
       id: ecr-login
       uses: aws-actions/amazon-ecr-login@v1
       with:
-        registry: 058264105592.dkr.ecr.eu-north-1.amazonaws.com/next.js_application
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        region: eu-north-1
-        mask-password: false
-        registry-type: private
-        skip-logout: false
+       registry: 058264105592.dkr.ecr.eu-north-1.amazonaws.com/next.js_application
+       region: ${{ secrets.AWS_REGION }}
+       mask-password: false
+       registry-type: 'AWS'
+       skip-logout: false
+
 
     - name: Build and push Docker image
       env:

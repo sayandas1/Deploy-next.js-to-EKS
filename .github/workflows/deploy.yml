@@ -34,7 +34,7 @@ jobs:
       uses: aws-actions/amazon-ecr-login@v1
       with:
        registry: 058264105592.dkr.ecr.eu-north-1.amazonaws.com/next.js_application
-       region: ${{ secrets.AWS_REGION }}
+       region: eu-north-1
        mask-password: false
        registry-type: private
        skip-logout: false

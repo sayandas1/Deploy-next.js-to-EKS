@@ -33,12 +33,10 @@ jobs:
 
       - name: Build and push Docker image
         env:
-          ECR_REGISTRY: 058264105592.dkr.ecr.eu-north-1.amazonaws.com
-          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t $ECR_REGISTRY/${{ secrets.ECR_REPOSITORY }}:$IMAGE_TAG -f Dockerfile .
-          docker push $ECR_REGISTRY/${{ secrets.ECR_REPOSITORY }}:$IMAGE_TAG
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f Dockerfile .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
       - name: Install kubectl
         run: |
@@ -49,13 +47,15 @@ jobs:
       - name: Configure kubectl
         run: aws eks --region $AWS_DEFAULT_REGION update-kubeconfig --name $EKS_CLUSTER_NAME
 
+      - name: Verify kubectl configuration
+        run: kubectl get svc
+
       - name: Deploy to EKS using Helm
         run: |
           helm upgrade --install nextjs-app ./helm-chart \
             --set image.repository=$ECR_REGISTRY/$ECR_REPOSITORY \
-            --set image.tag=latest
+            --set image.tag=$IMAGE_TAG
 
       - name: Clean up
         run: |
           docker system prune -f
-

@@ -35,15 +35,16 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: eu-north-1
-        run: aws ecr get-login-password --region eu-north-1 | docker login --username AWS --password-stdin 058264105592.dkr.ecr.eu-north-1.amazonaws.com
+        run: |
+          aws ecr get-login-password --region eu-north-1 | docker login --username AWS --password-stdin 058264105592.dkr.ecr.eu-north-1.amazonaws.com
 
       - name: Build and push Docker image
         env:
           ECR_REGISTRY: 058264105592.dkr.ecr.eu-north-1.amazonaws.com
-          ECR_REPOSITORY: next.js_application  # Replace with your ECR repository name
+          ECR_REPOSITORY: next.js_application
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          DOCKER_BUILDKIT=1 docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f Dockerfile .
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f Dockerfile .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
       - name: Configure AWS credentials
@@ -55,12 +56,12 @@ jobs:
 
       - name: Set up kubectl
         run: |
-          aws eks update-kubeconfig --name nextjs-cluster-revinfotech2024 --region eu-north-1
+          aws eks update-kubeconfig --name nextjs-cluster-revinfotech2024 --region eu-north-1 --role-arn arn:aws:iam::058264105592:role/AwsEKSCluster
 
       - name: Deploy with Helm
         env:
           ECR_REGISTRY: 058264105592.dkr.ecr.eu-north-1.amazonaws.com
-          ECR_REPOSITORY: next.js_application  # Replace with your ECR repository name
+          ECR_REPOSITORY: next.js_application
           IMAGE_TAG: ${{ github.sha }}
           RELEASE_NAME: nextjs-app
         run: |

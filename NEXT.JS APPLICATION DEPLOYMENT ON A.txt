@@ -1,0 +1,39 @@
+NEXT.JS APPLICATION DEPLOYMENT ON AMAZON EKS USING HELM
+This documentation provides steps to deploy a Next.js application on Amazon EKS (Elastic Kubernetes Service) using Helm.
+
+PREREQUISITES
+Before starting, ensure the following are set up:
+Amazon EKS cluster
+Amazon ECR repository for Docker images
+AWS IAM role with appropriate permissions for EKS and ECR
+GitHub repository secrets configured for AWS credentials
+
+HELM CHART STRUCTURE
+The Helm chart (helm-chart) in this repository includes:
+values.yaml: Configuration values for deployment (image repository, tag, service type, ports).
+templates/
+deployment.yaml: Kubernetes Deployment configuration for the Next.js application.
+service.yaml: Kubernetes Service configuration to expose the Next.js application.
+
+GITHUB ACTIONS WORKFLOW
+The GitHub Actions workflow (deploy.yml) automates deployment:
+Checks out code from the repository.
+Builds and pushes Docker image to Amazon ECR.
+Configures kubectl for Amazon EKS access.
+Deploys Helm chart to EKS using helm upgrade.
+
+GETTING STARTED
+To deploy your Next.js application on Amazon EKS:
+Update values.yaml:
+Set image.repository to your Amazon ECR repository URL.
+Optionally, customize service.type, service.port, etc.
+Configure GitHub repository secrets:
+AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+AWS_REGION, ECR_REGISTRY, EKS_CLUSTER_NAME, EKS_ROLE_ARN
+Push changes to trigger GitHub Actions for deployment.
+
+TROUBLESHOOTING
+If issues arise:
+Check GitHub Actions logs.
+Verify AWS credentials and permissions.
+Ensure Helm chart configurations (values.yaml, deployment.yaml, service.yaml) are correct.

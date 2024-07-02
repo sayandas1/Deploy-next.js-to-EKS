@@ -20,7 +20,7 @@ jobs:
 
     - name: Install dependencies
       run: npm install
-      working-directory: ./my-nextjs-app
+      working-directory: ./nextjs-material-kit-main
 
     - name: Build the Next.js app
       run: npm run build
@@ -67,4 +67,4 @@ jobs:
     - name: Clean up
       run: |
         docker image prune -f
-        rm -rf my-nextjs-app/node_modules
+        rm -rf my-nextjs-material-kit-main/node_modules

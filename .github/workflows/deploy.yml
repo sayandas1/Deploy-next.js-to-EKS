@@ -32,6 +32,12 @@ jobs:
     - name: Log in to Amazon ECR
       id: ecr-login
       uses: aws-actions/amazon-ecr-login@v1
+      with:
+        registry: 058264105592.dkr.ecr.eu-north-1.amazonaws.com/next.js_application
+        aws-region: ${{ secrets.AWS_REGION }}
+        mask-password: false
+        registry-type: private
+        skip-logout: false
 
     - name: Build and push Docker image
       env:
@@ -39,7 +45,7 @@ jobs:
         ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         IMAGE_TAG: ${{ github.sha }}
       run: |
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./my-nextjs-app
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./nextjs-material-kit-main
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
     - name: Configure AWS credentials
@@ -67,4 +73,4 @@ jobs:
     - name: Clean up
       run: |
         docker image prune -f
-        rm -rf my-nextjs-material-kit-main/node_modules
+        rm -rf nextjs-material-kit-main/node_modules

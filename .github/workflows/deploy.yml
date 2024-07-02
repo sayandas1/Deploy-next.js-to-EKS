@@ -58,13 +58,13 @@ jobs:
 
       - name: Deploy with Helm
         env:
-          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
-          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+          ECR_REGISTRY: 058264105592.dkr.ecr.eu-north-1.amazonaws.com/next.js_application
+          ECR_REPOSITORY: next.js_application
           IMAGE_TAG: ${{ github.sha }}
           RELEASE_NAME: nextjs-app
         run: |
           helm upgrade --install $RELEASE_NAME ./helm-chart \
-            --set image.repository=$ECR_REGISTRY/${{ secrets.ECR_REPOSITORY }} \
+            --set image.repository=058264105592.dkr.ecr.eu-north-1.amazonaws.com/next.js_application/next.js_application \
             --set image.tag=$IMAGE_TAG
 
       - name: Clean up

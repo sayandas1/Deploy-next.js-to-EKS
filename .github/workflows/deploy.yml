@@ -1,4 +1,4 @@
-name: Deploy Next.js App to EKS
+name: Deploy Next.js to EKS
 
 on:
   push:
@@ -10,47 +10,66 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v1
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
 
-    - name: Log in to Amazon ECR
-      id: ecr-login
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_REGION: eu-north-1
-      run: aws ecr get-login-password --region eu-north-1 | docker login --username AWS --password-stdin 058264105592.dkr.ecr.eu-north-1.amazonaws.com
+      - name: Install dependencies
+        run: npm install
+        working-directory: ./nextjs-material-kit-main
 
+      - name: Build the Next.js app
+        run: npm run build
+        working-directory: ./nextjs-material-kit-main
 
-    - name: Build Docker image
-      run: |
-        docker build -t $ECR_REGISTRY:latest .
-        docker tag $ECR_REGISTRY:latest $ECR_REGISTRY:latest
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
 
-    - name: Push Docker image to ECR
-      run: |
-        docker push $ECR_REGISTRY:latest
+      - name: Log in to Amazon ECR
+        id: ecr-login
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: eu-north-1
+        run: aws ecr get-login-password --region eu-north-1 | docker login --username AWS --password-stdin 058264105592.dkr.ecr.eu-north-1.amazonaws.com
 
-    - name: Configure kubectl
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ secrets.AWS_REGION }}
+      - name: Build and push Docker image
+        env:
+          ECR_REGISTRY: 058264105592.dkr.ecr.eu-north-1.amazonaws.com
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/${{ secrets.ECR_REPOSITORY }}:$IMAGE_TAG -f Dockerfile .
+          docker push $ECR_REGISTRY/${{ secrets.ECR_REPOSITORY }}:$IMAGE_TAG
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-north-1
 
-    - name: Setup kubectl
-      run: |
-        aws eks update-kubeconfig --name my-eks-cluster --region ${{ secrets.AWS_REGION }}
+      - name: Set up kubectl
+        id: eks-config
+        run: aws eks --region eu-north-1 update-kubeconfig --name ${{ secrets.EKS_CLUSTER_NAME }}
 
-    - name: Deploy with Helm
-      run: |
-        helm upgrade --install my-next-app helm/my-next-app \
-          --set image.repository=${{ steps.login-ecr.outputs.registry }}/my-next-app \
-          --set image.tag=latest
+      - name: Check kubeconfig
+        run: cat $HOME/.kube/config  # Output kubeconfig to verify it's properly configured
 
-    - name: Clean up
-      run: |
-        docker rmi $ECR_REPOSITORY:$latest || true
+      - name: Deploy with Helm
+        env:
+          ECR_REGISTRY: 058264105592.dkr.ecr.eu-north-1.amazonaws.com
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+          IMAGE_TAG: ${{ github.sha }}
+          RELEASE_NAME: nextjs-app
+        run: |
+          helm upgrade --install $RELEASE_NAME ./helm-chart \
+            --set image.repository=$ECR_REGISTRY/${{ secrets.ECR_REPOSITORY }} \
+            --set image.tag=$IMAGE_TAG
+      - name: Clean up
+        run: |
+          docker image prune -f
+          rm -rf nextjs-material-kit-main/node_modules

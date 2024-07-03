@@ -1,4 +1,4 @@
-name: Deploy Next.js Application to EKS
+name: Deploy Next.js App to EKS
 
 on:
   push:
@@ -8,59 +8,48 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
-    env:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_REGION: ${{ secrets.AWS_REGION }}
-      ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
-      EKS_CLUSTER_NAME: ${{ secrets.EKS_CLUSTER_NAME }}
-      EKS_ROLE_ARN: ${{ secrets.EKS_ROLE_ARN }}
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      - name: Check AWS CLI version
-        run: aws --version
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
 
-      - name: Install AWS CLI
-        run: |
-          sudo apt-get update
-          sudo apt-get install awscli -y
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+      with:
+        access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        region: ${{ secrets.AWS_REGION }}
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+    - name: Build and push Docker image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: my-next-app
+        IMAGE_TAG: latest
+      run: |
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+    - name: Configure kubectl
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Build Docker image
-        run: |
-          docker build -t $ECR_REGISTRY:latest .
-          docker tag $ECR_REGISTRY:latest $ECR_REGISTRY:latest
+    - name: Setup kubectl
+      run: |
+        aws eks update-kubeconfig --name my-eks-cluster --region ${{ secrets.AWS_REGION }}
 
-      - name: Push Docker image to ECR
-        run: |
-          docker push $ECR_REGISTRY:latest
+    - name: Deploy with Helm
+      run: |
+        helm upgrade --install my-next-app helm/my-next-app \
+          --set image.repository=${{ steps.login-ecr.outputs.registry }}/my-next-app \
+          --set image.tag=latest
 
-      - name: Configure kubectl and update kubeconfig
-        run: |
-          aws eks --region $AWS_REGION update-kubeconfig --name $EKS_CLUSTER_NAME --role-arn $EKS_ROLE_ARN
-        env:
-          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
-
-      - name: Deploy to EKS using Helm
-        run: |
-          helm upgrade --install nextjs-app ./helm-chart \
-            --set image.repository=$ECR_REGISTRY,image.tag=latest \
-            --kubeconfig $HOME/.kube/config
-
-      - name: Clean up
-        run: |
-          docker system prune -f
+    - name: Clean up
+      run: |
+        docker rmi $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG || true

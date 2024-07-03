@@ -35,16 +35,16 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: eu-north-1
-        run: aws ecr get-login-password --region eu-north-1 | docker login --username AWS --password-stdin 058264105592.dkr.ecr.eu-north-1.amazonaws.com
+        run: aws ecr get-login-password --region eu-north-1 | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
 
       - name: Build and push Docker image
         env:
-          ECR_REGISTRY: 058264105592.dkr.ecr.eu-north-1.amazonaws.com
+          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t $ECR_REGISTRY/${{ secrets.ECR_REPOSITORY }}:$IMAGE_TAG -f Dockerfile .
-          docker push $ECR_REGISTRY/${{ secrets.ECR_REPOSITORY }}:$IMAGE_TAG
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f Dockerfile .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -54,21 +54,23 @@ jobs:
           aws-region: eu-north-1
 
       - name: Set up kubectl
-        id: eks-config
+        run: aws eks --region eu-north-1 update-kubeconfig --name ${{ secrets.EKS_CLUSTER_NAME }}
+
+      - name: Verify kubeconfig and EKS cluster
         run: |
-          aws eks --region eu-north-1 update-kubeconfig --name my-eks-cluster
           kubectl config view
           kubectl get nodes
+          kubectl get pods --all-namespaces
 
       - name: Deploy with Helm
         env:
-          ECR_REGISTRY: 058264105592.dkr.ecr.eu-north-1.amazonaws.com
+          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
           IMAGE_TAG: ${{ github.sha }}
           RELEASE_NAME: nextjs-app
         run: |
           helm upgrade --install $RELEASE_NAME ./helm/my-next-app \
-            --set image.repository=$ECR_REGISTRY/${{ secrets.ECR_REPOSITORY }} \
+            --set image.repository=$ECR_REGISTRY/$ECR_REPOSITORY \
             --set image.tag=$IMAGE_TAG
 
       - name: Clean up

@@ -26,14 +26,13 @@ jobs:
 
 
     - name: Build Docker image
-      ECR_REPOSITORY: my-next-app
       run: |
-        docker build -t $ECR_REPOSITORY:latest .
-        docker tag $ECR_REPOSITORY:latest $ECR_REPOSITORY:latest
+        docker build -t $ECR_REGISTRY:latest .
+        docker tag $ECR_REGISTRY:latest $ECR_REGISTRY:latest
 
     - name: Push Docker image to ECR
       run: |
-        docker push $ECR_REPOSITORY:latest
+        docker push $ECR_REGISTRY:latest
 
     - name: Configure kubectl
       uses: aws-actions/configure-aws-credentials@v1

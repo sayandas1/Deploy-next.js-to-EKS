@@ -45,6 +45,7 @@ jobs:
         run: |
           docker build -t $ECR_REGISTRY/${{ secrets.ECR_REPOSITORY }}:$IMAGE_TAG -f Dockerfile .
           docker push $ECR_REGISTRY/${{ secrets.ECR_REPOSITORY }}:$IMAGE_TAG
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -54,10 +55,10 @@ jobs:
 
       - name: Set up kubectl
         id: eks-config
-        run: aws eks --region eu-north-1 update-kubeconfig --name ${{ secrets.EKS_CLUSTER_NAME }}
-
-      - name: Check kubeconfig
-        run: cat $HOME/.kube/config  # Output kubeconfig to verify it's properly configured
+        run: |
+          aws eks --region eu-north-1 update-kubeconfig --name my-eks-cluster
+          kubectl config view
+          kubectl get nodes
 
       - name: Deploy with Helm
         env:
@@ -66,9 +67,10 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
           RELEASE_NAME: nextjs-app
         run: |
-          helm upgrade --install $RELEASE_NAME ./helm \
+          helm upgrade --install $RELEASE_NAME ./helm/my-next-app \
             --set image.repository=$ECR_REGISTRY/${{ secrets.ECR_REPOSITORY }} \
             --set image.tag=$IMAGE_TAG
+
       - name: Clean up
         run: |
           docker image prune -f
